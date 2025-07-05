@@ -1,10 +1,12 @@
-// BASIC THREE.JS SETUP
 let scene, camera, renderer;
 let player, playerSpeed = 0.2;
-let lanes = [-2, 0, 2]; // three lanes
-let currentLane = 1; // center lane
+let lanes = [-2, 0, 2];
+let currentLane = 1;
 let obstacles = [];
 let groundSpeed = 0.1;
+let isJumping = false;
+let jumpSpeed = 0;
+let gravity = -0.01;
 
 init();
 animate();
@@ -38,16 +40,25 @@ function init() {
   player.position.x = lanes[currentLane];
   scene.add(player);
 
-  // sample obstacle
+  // create several obstacles
+  for (let i = 0; i < 5; i++) {
+    spawnObstacle();
+  }
+
+  document.addEventListener('keydown', onKeyDown);
+}
+
+function spawnObstacle() {
   const obsGeometry = new THREE.BoxGeometry(1, 2, 1);
   const obsMaterial = new THREE.MeshBasicMaterial({color: 0x0000ff});
   const obstacle = new THREE.Mesh(obsGeometry, obsMaterial);
-  obstacle.position.set(0, 1, -20);
+  obstacle.position.set(
+    lanes[Math.floor(Math.random() * 3)],
+    1,
+    -Math.random() * 50 - 10
+  );
   scene.add(obstacle);
   obstacles.push(obstacle);
-
-  // controls
-  document.addEventListener('keydown', onKeyDown);
 }
 
 function onKeyDown(event) {
@@ -59,22 +70,39 @@ function onKeyDown(event) {
     currentLane++;
     player.position.x = lanes[currentLane];
   }
+  if(event.key === ' ' && !isJumping) {
+    isJumping = true;
+    jumpSpeed = 0.2;
+  }
 }
 
 function animate() {
   requestAnimationFrame(animate);
 
-  // move obstacles towards player
+  // jump physics
+  if (isJumping) {
+    player.position.y += jumpSpeed;
+    jumpSpeed += gravity;
+    if (player.position.y <= 1) {
+      player.position.y = 1;
+      isJumping = false;
+    }
+  }
+
+  // move obstacles
   obstacles.forEach(obs => {
     obs.position.z += groundSpeed * 5;
     if(obs.position.z > 5) {
-      obs.position.z = -50; // respawn far away
-      obs.position.x = lanes[Math.floor(Math.random()*3)];
+      obs.position.z = -Math.random() * 50 - 10;
+      obs.position.x = lanes[Math.floor(Math.random() * 3)];
     }
 
-    // collision check
-    if(Math.abs(obs.position.z - player.position.z) < 1.5 && 
-       Math.abs(obs.position.x - player.position.x) < 1) {
+    // collision
+    if (
+      Math.abs(obs.position.z - player.position.z) < 1.5 &&
+      Math.abs(obs.position.x - player.position.x) < 1 &&
+      player.position.y < 2 // only collide if not jumping over
+    ) {
       console.log("Collision!");
     }
   });
