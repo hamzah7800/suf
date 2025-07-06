@@ -1,5 +1,5 @@
 let scene, camera, renderer;
-let player, playerSpeed = 0.2;
+let player;
 let lanes = [-2, 0, 2];
 let currentLane = 1;
 let obstacles = [];
@@ -7,9 +7,24 @@ let groundSpeed = 0.1;
 let isJumping = false;
 let jumpSpeed = 0;
 let gravity = -0.01;
+let score = 0;
+let isGameOver = false;
 
-init();
-animate();
+let scoreDisplay = document.getElementById("score");
+let menu = document.getElementById("menu");
+let startBtn = document.getElementById("startBtn");
+
+startBtn.addEventListener("click", startGame);
+
+function startGame() {
+  menu.style.display = "none";
+  score = 0;
+  isGameOver = false;
+  obstacles = [];
+  scene = null;
+  init();
+  animate();
+}
 
 function init() {
   scene = new THREE.Scene();
@@ -40,28 +55,30 @@ function init() {
   player.position.x = lanes[currentLane];
   scene.add(player);
 
-  // create several obstacles
-  for (let i = 0; i < 5; i++) {
-    spawnObstacle();
+  // spawn trains
+  for (let i = 0; i < 3; i++) {
+    spawnTrain();
   }
 
   document.addEventListener('keydown', onKeyDown);
 }
 
-function spawnObstacle() {
-  const obsGeometry = new THREE.BoxGeometry(1, 2, 1);
-  const obsMaterial = new THREE.MeshBasicMaterial({color: 0x0000ff});
-  const obstacle = new THREE.Mesh(obsGeometry, obsMaterial);
-  obstacle.position.set(
+function spawnTrain() {
+  const trainGeometry = new THREE.BoxGeometry(1.5, 2, 4);
+  const trainMaterial = new THREE.MeshBasicMaterial({color: 0x0000ff});
+  const train = new THREE.Mesh(trainGeometry, trainMaterial);
+  train.position.set(
     lanes[Math.floor(Math.random() * 3)],
     1,
     -Math.random() * 50 - 10
   );
-  scene.add(obstacle);
-  obstacles.push(obstacle);
+  scene.add(train);
+  obstacles.push(train);
 }
 
 function onKeyDown(event) {
+  if(isGameOver) return;
+
   if(event.key === 'ArrowLeft' && currentLane > 0){
     currentLane--;
     player.position.x = lanes[currentLane];
@@ -77,6 +94,8 @@ function onKeyDown(event) {
 }
 
 function animate() {
+  if(isGameOver) return;
+
   requestAnimationFrame(animate);
 
   // jump physics
@@ -89,7 +108,7 @@ function animate() {
     }
   }
 
-  // move obstacles
+  // move trains
   obstacles.forEach(obs => {
     obs.position.z += groundSpeed * 5;
     if(obs.position.z > 5) {
@@ -97,15 +116,29 @@ function animate() {
       obs.position.x = lanes[Math.floor(Math.random() * 3)];
     }
 
-    // collision
+    // collision detection
     if (
-      Math.abs(obs.position.z - player.position.z) < 1.5 &&
+      Math.abs(obs.position.z - player.position.z) < 2 &&
       Math.abs(obs.position.x - player.position.x) < 1 &&
-      player.position.y < 2 // only collide if not jumping over
+      player.position.y < 2 // not jumping over
     ) {
-      console.log("Collision!");
+      console.log("Game Over!");
+      endGame();
     }
   });
 
+  // update score
+  score += 1;
+  scoreDisplay.textContent = `Score: ${score}`;
+
   renderer.render(scene, camera);
+}
+
+function endGame() {
+  isGameOver = true;
+  menu.style.display = "flex";
+  menu.innerHTML = `<h1>Game Over</h1><p>Score: ${score}</p><button id="restartBtn">Play Again</button>`;
+  document.getElementById("restartBtn").addEventListener("click", () => {
+    location.reload();
+  });
 }
