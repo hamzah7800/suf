@@ -5,3 +5,30 @@ body {
 canvas {
   display: block;
 }
+#score {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  color: white;
+  font-size: 20px;
+  z-index: 10;
+}
+#menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+#menu button {
+  padding: 10px 20px;
+  font-size: 18px;
+  margin-top: 20px;
+}
