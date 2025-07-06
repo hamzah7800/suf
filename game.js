@@ -2,6 +2,7 @@ let scene, camera, renderer;
 let player;
 let lanes = [-2, 0, 2];
 let currentLane = 1;
+let targetX = 0;
 let obstacles = [];
 let groundSpeed = 0.1;
 let isJumping = false;
@@ -15,6 +16,30 @@ let menu = document.getElementById("menu");
 let startBtn = document.getElementById("startBtn");
 
 startBtn.addEventListener("click", startGame);
+
+let manager = nipplejs.create({
+  zone: document.body,
+  mode: 'static',
+  position: { left: '50%', bottom: '20%' },
+  color: 'white'
+});
+
+manager.on('dir', function(evt, data) {
+  if(isGameOver) return;
+
+  if(data.direction.angle === "left" && currentLane > 0) {
+    currentLane--;
+    targetX = lanes[currentLane];
+  }
+  if(data.direction.angle === "right" && currentLane < 2) {
+    currentLane++;
+    targetX = lanes[currentLane];
+  }
+  if(data.direction.angle === "up" && !isJumping) {
+    isJumping = true;
+    jumpSpeed = 0.2;
+  }
+});
 
 function startGame() {
   menu.style.display = "none";
@@ -39,7 +64,6 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // ground
   const groundGeometry = new THREE.PlaneGeometry(10, 200);
   const groundMaterial = new THREE.MeshBasicMaterial({color: 0x555555});
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -47,15 +71,14 @@ function init() {
   ground.position.z = -100;
   scene.add(ground);
 
-  // player
   const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
   const playerMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
   player = new THREE.Mesh(playerGeometry, playerMaterial);
   player.position.y = 1;
   player.position.x = lanes[currentLane];
+  targetX = lanes[currentLane];
   scene.add(player);
 
-  // spawn trains
   for (let i = 0; i < 3; i++) {
     spawnTrain();
   }
@@ -81,11 +104,11 @@ function onKeyDown(event) {
 
   if(event.key === 'ArrowLeft' && currentLane > 0){
     currentLane--;
-    player.position.x = lanes[currentLane];
+    targetX = lanes[currentLane];
   }
   if(event.key === 'ArrowRight' && currentLane < 2){
     currentLane++;
-    player.position.x = lanes[currentLane];
+    targetX = lanes[currentLane];
   }
   if(event.key === ' ' && !isJumping) {
     isJumping = true;
@@ -97,6 +120,9 @@ function animate() {
   if(isGameOver) return;
 
   requestAnimationFrame(animate);
+
+  // smooth lane movement
+  player.position.x += (targetX - player.position.x) * 0.1;
 
   // jump physics
   if (isJumping) {
@@ -120,9 +146,8 @@ function animate() {
     if (
       Math.abs(obs.position.z - player.position.z) < 2 &&
       Math.abs(obs.position.x - player.position.x) < 1 &&
-      player.position.y < 2 // not jumping over
+      player.position.y < 2
     ) {
-      console.log("Game Over!");
       endGame();
     }
   });
